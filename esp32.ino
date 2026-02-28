@@ -135,16 +135,17 @@ void CheckAPIForUpdates() {
 
             File file = SD.open(fileName, FILE_WRITE);    // Open file for writing
             if (file) {
-                WiFiClient *stream = http.getStreamPtr();
-                size_t bufferSize = 1024;
-                uint8_t buffer[bufferSize];    // Define a buffer for incoming data
-                int bytesRead = stream->readBytes(buffer, bufferSize);
-                while (bytesRead > 0) {    // Read and write the binary file
-                    file.write(buffer, bytesRead);
-                    bytesRead = stream->readBytes(buffer, bufferSize);
-                }
+                // ⚡ Bolt: Replaced manual readBytes loop with http.writeToStream
+                // 💡 What: Used native HTTPClient writeToStream method
+                // 🎯 Why: Avoids blocking manual buffer allocation, CPU loops, and reduces fragmentation overhead
+                // 📊 Impact: Significantly faster download speeds and lower peak memory usage for large OTA binaries
+                int written = http.writeToStream(&file);
                 file.close();    // Close the file
-                Serial.println("File saved successfully.");
+                if (written > 0) {
+                    Serial.println("File saved successfully.");
+                } else {
+                    Serial.println("Error saving file.");
+                }
             } else {
                 Serial.print("Error creating file: ");
                 Serial.println(fileName);
