@@ -233,10 +233,16 @@ void setup() {
         &SDUpdaterTaskBuffer,
         1    // Core number where the task should run
     );
+
+    // ⚡ Bolt: Destroy default loopTask when it is not needed
+    // 💡 What: Used vTaskDelete(NULL) to delete the Arduino loop task and leave loop() empty.
+    // 🎯 Why: FreeRTOS loopTask takes ~8KB of SRAM and consumes CPU cycles for unnecessary context switching.
+    // 📊 Impact: Recovers up to ~8KB of heap memory and improves RTOS task scheduling efficiency.
+    vTaskDelete(NULL);
 }
 
 void loop(void) {
-    // Empty loop - all operations are handled by tasks
+    // ⚡ Bolt: Empty loop - all operations are handled by static tasks. The default Arduino loopTask is deleted at the end of setup().
 }
 
 void WiFiUpdaterLoop(void *pcParameters) {
