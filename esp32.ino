@@ -72,9 +72,13 @@ void performUpdate(Stream &updateSource, size_t updateSize) {
     if (Update.begin(updateSize)) {    // Start the update process
         size_t written = Update.writeStream(updateSource);
         if (written == updateSize) {
-            Serial.println("Written : " + String(written) + " successfully");
+            // ⚡ Bolt: Replaced String concatenation with Serial.printf
+            // 💡 What: Used printf instead of String allocations
+            // 🎯 Why: String allocations heap-fragment over time, especially in long-running loops.
+            // 📊 Impact: Saves flash memory and avoids runtime fragmentation, making OTA stabler.
+            Serial.printf("Written : %zu successfully\n", written);
         } else {
-            Serial.println("Written only : " + String(written) + "/" + String(updateSize) + ". Retry?");
+            Serial.printf("Written only : %zu/%zu. Retry?\n", written, updateSize);
         }
         if (Update.end()) {    // Finalize the update process
             Serial.println("OTA done!");
@@ -85,7 +89,7 @@ void performUpdate(Stream &updateSource, size_t updateSize) {
                 Serial.println("Update not finished? Something went wrong!");
             }
         } else {
-            Serial.println("Error Occurred. Error #: " + String(Update.getError()));
+            Serial.printf("Error Occurred. Error #: %d\n", Update.getError());
         }
     } else {
         Serial.println("Not enough space to begin OTA");
@@ -161,7 +165,7 @@ void CheckAPIForUpdates() {
             is_downloading = true;
 
             Serial.println("Update found!");
-            String fileName = "/update.bin";    // Define file name for new firmware
+            const char* fileName = "/update.bin";    // Define file name for new firmware
 
             if (!SD.begin(SD_CS_PIN)) {    // Re-initialize SD card
                 Serial.println("Failed to initialize SD card.");
