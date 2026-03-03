@@ -72,9 +72,14 @@ void performUpdate(Stream &updateSource, size_t updateSize) {
     if (Update.begin(updateSize)) {    // Start the update process
         size_t written = Update.writeStream(updateSource);
         if (written == updateSize) {
-            Serial.println("Written : " + String(written) + " successfully");
+            // ⚡ Bolt: Replaced dynamic String concatenation with Serial.printf
+            // 💡 What: Used Serial.printf instead of String concatenation
+            // 🎯 Why: Avoids heap fragmentation and unnecessary CPU overhead on the ESP32 caused by repeated dynamic allocations of String objects
+            // 📊 Impact: Reduced heap usage, prevented fragmentation, and slightly faster logging
+            // 🔬 Measurement: Observe heap stability over time during OTA updates
+            Serial.printf("Written : %zu successfully\n", written);
         } else {
-            Serial.println("Written only : " + String(written) + "/" + String(updateSize) + ". Retry?");
+            Serial.printf("Written only : %zu/%zu. Retry?\n", written, updateSize);
         }
         if (Update.end()) {    // Finalize the update process
             Serial.println("OTA done!");
@@ -85,7 +90,7 @@ void performUpdate(Stream &updateSource, size_t updateSize) {
                 Serial.println("Update not finished? Something went wrong!");
             }
         } else {
-            Serial.println("Error Occurred. Error #: " + String(Update.getError()));
+            Serial.printf("Error Occurred. Error #: %d\n", Update.getError());
         }
     } else {
         Serial.println("Not enough space to begin OTA");
@@ -161,7 +166,12 @@ void CheckAPIForUpdates() {
             is_downloading = true;
 
             Serial.println("Update found!");
-            String fileName = "/update.bin";    // Define file name for new firmware
+            // ⚡ Bolt: Replaced dynamic String with const char* for static filename
+            // 💡 What: Used const char* instead of String for a static string
+            // 🎯 Why: Avoids dynamic memory allocation on the heap for a string that is constant
+            // 📊 Impact: Saves a small amount of heap and CPU cycles
+            // 🔬 Measurement: Check free heap size before and after this function runs
+            const char* fileName = "/update.bin";    // Define file name for new firmware
 
             if (!SD.begin(SD_CS_PIN)) {    // Re-initialize SD card
                 Serial.println("Failed to initialize SD card.");
