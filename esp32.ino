@@ -157,7 +157,7 @@ void CheckAPIForUpdates() {
         if (httpCode == HTTP_CODE_ALREADY_REPORTED) {
             Serial.println("Firmware already up to date.");
 
-        } else if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+        } else if (httpCode == HTTP_CODE_OK) { // 🛡️ Sentinel: Reject 301 redirects to prevent writing HTML payloads to firmware binary
             is_downloading = true;
 
             Serial.println("Update found!");
@@ -171,16 +171,23 @@ void CheckAPIForUpdates() {
 
             File file = SD.open(fileName, FILE_WRITE);    // Open file for writing
             if (file) {
+                // 🛡️ Sentinel: Fetch expected file size to validate download integrity
+                int expectedSize = http.getSize();
+
                 // ⚡ Bolt: Replaced manual readBytes loop with http.writeToStream
                 // 💡 What: Used native HTTPClient writeToStream method
                 // 🎯 Why: Avoids blocking manual buffer allocation, CPU loops, and reduces fragmentation overhead
                 // 📊 Impact: Significantly faster download speeds and lower peak memory usage for large OTA binaries
                 int written = http.writeToStream(&file);
                 file.close();    // Close the file
-                if (written > 0) {
+
+                // 🛡️ Sentinel: Validate that the complete file was downloaded to prevent flashing corrupted/truncated firmware (DoS risk)
+                // expectedSize will be -1 if the server uses chunked transfer encoding
+                if (written > 0 && (expectedSize == -1 || written == expectedSize)) {
                     Serial.println("File saved successfully.");
                 } else {
-                    Serial.println("Error saving file.");
+                    Serial.println("Error saving file or incomplete download. Deleting invalid payload.");
+                    SD.remove(fileName); // Remove incomplete firmware
                 }
             } else {
                 Serial.print("Error creating file: ");
