@@ -157,7 +157,9 @@ void CheckAPIForUpdates() {
         if (httpCode == HTTP_CODE_ALREADY_REPORTED) {
             Serial.println("Firmware already up to date.");
 
-        } else if (httpCode == HTTP_CODE_OK || httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
+        // 🛡️ Sentinel: Reject redirects (e.g., 301/302) to prevent writing HTML payloads
+        // into the OTA binary, which causes Denial of Service (bricking the device).
+        } else if (httpCode == HTTP_CODE_OK) {
             is_downloading = true;
 
             Serial.println("Update found!");
